@@ -40,6 +40,11 @@ public class AccountController {
                 .orElseThrow(() -> new AccountNotFoundException("Account not found with ID: " + accountId));
     }
 
+    @GetMapping("/user/{userId}")
+    public List<Account> getAllAccountsByUserId(@PathVariable Long userId) {
+        return accountService.getAllAccountsByUserId(userId);
+    }
+
     @PostMapping("/{userId}")
     public ResponseEntity<Account> createAccount(@RequestBody Account account, @PathVariable Long userId) {
         try {

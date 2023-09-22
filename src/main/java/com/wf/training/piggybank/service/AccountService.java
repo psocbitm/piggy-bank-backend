@@ -49,5 +49,10 @@ public class AccountService {
         accountRepository.deleteById(accountId);
     }
 
+    public List<Account> getAllAccountsByUserId(Long userId) {
+        return accountRepository.findByUserId(userId);
+    }
+
+
     // Add more business logic methods as needed
 }

@@ -32,6 +32,11 @@ public class PayeeController {
         return ResponseEntity.ok(payees);
     }
 
+    @GetMapping("/user/{userId}")
+    public List<Payee> getAllPayeesByUserId(@PathVariable Long userId) {
+        return payeeService.getAllPayeesByUserId(userId);
+    }
+
     @GetMapping("/{payeeId}")
     public ResponseEntity<Payee> getPayeeById(@PathVariable Long payeeId) {
         Optional<Payee> payee = payeeService.getPayeeById(payeeId);
@@ -51,24 +56,17 @@ public class PayeeController {
 
     @PutMapping("/{payeeId}")
     public ResponseEntity<Payee> updatePayee(@PathVariable Long payeeId, @RequestBody Payee updatedPayee) {
-        Optional<Payee> payee = payeeService.getPayeeById(payeeId);
-        if (payee.isPresent()) {
-            updatedPayee.setId(payeeId);
-            Payee updatedPayeeEntity = payeeService.updatePayee(updatedPayee);
+        try {
+            Payee updatedPayeeEntity = payeeService.updatePayee(payeeId, updatedPayee);
             return ResponseEntity.ok(updatedPayeeEntity);
-        } else {
+        } catch (PayeeNotFoundException ex) {
             throw new PayeeNotFoundException("Payee not found with ID: " + payeeId);
         }
     }
 
     @DeleteMapping("/{payeeId}")
     public ResponseEntity<Void> deletePayee(@PathVariable Long payeeId) {
-        Optional<Payee> payee = payeeService.getPayeeById(payeeId);
-        if (payee.isPresent()) {
-            payeeService.deletePayee(payeeId);
-            return ResponseEntity.noContent().build();
-        } else {
-            throw new PayeeNotFoundException("Payee not found with ID: " + payeeId);
-        }
+        payeeService.deletePayee(payeeId);
+        return ResponseEntity.noContent().build();
     }
 }
