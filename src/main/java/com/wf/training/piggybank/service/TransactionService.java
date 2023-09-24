@@ -1,127 +1,120 @@
 package com.wf.training.piggybank.service;
 
-import com.wf.training.piggybank.exception.*;
+import com.wf.training.piggybank.exception.DestinationAccountNotFoundException;
+import com.wf.training.piggybank.exception.DestinationNotPayeeException;
+import com.wf.training.piggybank.exception.InsufficientBalanceException;
+import com.wf.training.piggybank.exception.SourceAccountNotFoundException;
 import com.wf.training.piggybank.model.Account;
 import com.wf.training.piggybank.model.Transaction;
 import com.wf.training.piggybank.model.TransactionType;
 import com.wf.training.piggybank.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class TransactionService {
-
     private final TransactionRepository transactionRepository;
     private final AccountService accountService;
 
+    private final PayeeService payeeService;
     @Autowired
-    public TransactionService(TransactionRepository transactionRepository, AccountService accountService) {
+    public TransactionService(TransactionRepository transactionRepository, AccountService accountService, PayeeService payeeService) {
         this.transactionRepository = transactionRepository;
         this.accountService = accountService;
+        this.payeeService = payeeService;
     }
 
-    public List<Transaction> getAllTransactions() {
-        return transactionRepository.findAll();
-    }
+    public Transaction performTransfer(Transaction transaction) {
+        Long sourceAccountId = transaction.getSourceAccount().getId();
+        Long destinationAccountId = transaction.getDestinationAccount().getId();
 
-    public Transaction getTransactionById(Long transactionId) {
-        return transactionRepository.findById(transactionId)
-                .orElseThrow(() -> new TransactionNotFoundException("Transaction not found with ID: " + transactionId));
-    }
+        Optional<Account> sourceAccountOpt = accountService.getAccountById(sourceAccountId);
+        Optional<Account> destinationAccountOpt = accountService.getAccountById(destinationAccountId);
 
-    @Transactional(rollbackFor = TransactionException.class)
-    public void createTransaction(Transaction transaction) {
-        try {
-            TransactionType type = transaction.getType();
+        if (sourceAccountOpt.isEmpty()) {
+            throw new SourceAccountNotFoundException("Source account not found");
+        }
 
-            if (type == null) {
-                throw new InvalidTransactionTypeException("Transaction type is required.");
+        Account sourceAccount = sourceAccountOpt.get();
+
+        if (destinationAccountOpt.isEmpty()) {
+            // Handle the case where the destination account is not found
+            BigDecimal amount = transaction.getAmount();
+            if (sourceAccount.getBalance().compareTo(amount) < 0) {
+                throw new InsufficientBalanceException("Insufficient balance in source account");
             }
 
-            switch (type) {
-                case DEPOSIT:
-                    if (transaction.getReceiverAccount() == null) {
-                        throw new ReceiverAccountRequiredException("Receiver account is required for a DEPOSIT transaction.");
-                    }
-                    deposit(transaction);
-                    break;
+            BigDecimal newSourceAccountBalance = sourceAccount.getBalance().subtract(amount);
+            sourceAccount.setBalance(newSourceAccountBalance);
+            accountService.updateAccount(sourceAccount);
 
-                case WITHDRAWAL:
-                    if (transaction.getSenderAccount() == null) {
-                        throw new SenderAccountRequiredException("Sender account is required for a WITHDRAWAL transaction.");
-                    }
-                    withdrawal(transaction);
-                    break;
+            Transaction newTransaction = new Transaction();
+            newTransaction.setSourceAccount(sourceAccount);
+            newTransaction.setType(TransactionType.TRANSFER);
+            newTransaction.setAmount(amount);
 
-                case TRANSFER:
-                    if (transaction.getSenderAccount() == null || transaction.getReceiverAccount() == null) {
-                        throw new SenderReceiverAccountsRequiredException("Both sender and receiver accounts are required for a TRANSFER transaction.");
-                    }
-                    transfer(transaction);
-                    break;
+            return transactionRepository.save(newTransaction);
+        }
 
-                default:
-                    throw new InvalidTransactionTypeException("Invalid transaction type.");
+        Account destinationAccount = destinationAccountOpt.get();
+
+        if (!payeeService.isPayee(sourceAccount, destinationAccount)) {
+            throw new DestinationNotPayeeException("Destination account is not a payee of source account");
+        }
+
+        BigDecimal amount = transaction.getAmount();
+
+        if (sourceAccount.getBalance().compareTo(amount) < 0) {
+            throw new InsufficientBalanceException("Insufficient balance in source account");
+        }
+
+        BigDecimal newSourceAccountBalance = sourceAccount.getBalance().subtract(amount);
+        BigDecimal newDestinationAccountBalance = destinationAccount.getBalance().add(amount);
+
+        sourceAccount.setBalance(newSourceAccountBalance);
+        destinationAccount.setBalance(newDestinationAccountBalance);
+
+        accountService.updateAccount(sourceAccount);
+        accountService.updateAccount(destinationAccount);
+
+        Transaction newTransaction = new Transaction();
+        newTransaction.setSourceAccount(sourceAccount);
+        newTransaction.setDestinationAccount(destinationAccount);
+        newTransaction.setType(TransactionType.TRANSFER);
+        newTransaction.setAmount(amount);
+
+        return transactionRepository.save(newTransaction);
+    }
+
+
+    public Transaction performWithdrawal(Transaction transaction) {
+        Long sourceAccountId = transaction.getSourceAccount().getId();
+        Optional<Account> sourceAccount = accountService.getAccountById(sourceAccountId);
+
+        if (sourceAccount.isPresent()) {
+            if (sourceAccount.get().getBalance().compareTo(transaction.getAmount()) < 0) {
+                throw new InsufficientBalanceException("Insufficient balance in source account");
             }
 
-            // Set transaction date and save it
-            transaction.setTransactionDate(new Date());
-            transactionRepository.save(transaction);
-        } catch (TransactionException e) {
-            throw new TransactionException("Transaction failed: " + e.getMessage());
+            BigDecimal newSourceAccountBalance = sourceAccount.get().getBalance().subtract(transaction.getAmount());
+            sourceAccount.get().setBalance(newSourceAccountBalance);
+            accountService.updateAccount(sourceAccount.get());
+
+            Transaction newTransaction = new Transaction();
+            newTransaction.setSourceAccount(sourceAccount.get());
+            newTransaction.setType(TransactionType.WITHDRAWAL);
+            newTransaction.setAmount(transaction.getAmount());
+            return transactionRepository.save(newTransaction);
+        } else {
+            throw new SourceAccountNotFoundException("Source account not found");
         }
     }
 
-    private void deposit(Transaction transaction) {
-        Account receiverAccount = accountService.getAccountById(transaction.getReceiverAccount().getId())
-                .orElseThrow(() -> new AccountNotFoundException("Receiver account not found."));
-
-        BigDecimal transactionAmount = transaction.getAmount();
-        BigDecimal receiverBalance = receiverAccount.getBalance().add(transactionAmount);
-        receiverAccount.setBalance(receiverBalance);
-        accountService.updateAccount(receiverAccount);
-    }
-
-    private void withdrawal(Transaction transaction) {
-        Account senderAccount = accountService.getAccountById(transaction.getSenderAccount().getId())
-                .orElseThrow(() -> new AccountNotFoundException("Sender account not found."));
-
-        BigDecimal transactionAmount = transaction.getAmount();
-
-        if (senderAccount.getBalance().compareTo(transactionAmount) < 0) {
-            throw new InsufficientBalanceException("Sender doesn't have sufficient balance.");
-        }
-
-        BigDecimal senderBalance = senderAccount.getBalance().subtract(transactionAmount);
-        senderAccount.setBalance(senderBalance);
-        accountService.updateAccount(senderAccount);
-    }
-
-    private void transfer(Transaction transaction) {
-        Account senderAccount = accountService.getAccountById(transaction.getSenderAccount().getId())
-                .orElseThrow(() -> new AccountNotFoundException("Sender account not found."));
-
-        Account receiverAccount = accountService.getAccountById(transaction.getReceiverAccount().getId())
-                .orElseThrow(() -> new AccountNotFoundException("Receiver account not found."));
-
-        BigDecimal transactionAmount = transaction.getAmount();
-
-        if (senderAccount.getBalance().compareTo(transactionAmount) < 0) {
-            throw new InsufficientBalanceException("Sender doesn't have sufficient balance.");
-        }
-
-        BigDecimal senderBalance = senderAccount.getBalance().subtract(transactionAmount);
-        BigDecimal receiverBalance = receiverAccount.getBalance().add(transactionAmount);
-
-        senderAccount.setBalance(senderBalance);
-        receiverAccount.setBalance(receiverBalance);
-
-        accountService.updateAccount(senderAccount);
-        accountService.updateAccount(receiverAccount);
+    public List<Transaction> getAllTransactionsByUser(Long userId) {
+        return transactionRepository.findAllBySourceAccountUserIdOrDestinationAccountUserId(userId, userId);
     }
 }

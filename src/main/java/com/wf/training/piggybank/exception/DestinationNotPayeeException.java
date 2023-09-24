@@ -4,9 +4,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ResponseStatus(HttpStatus.BAD_REQUEST)
-public class ReceiverAccountRequiredException extends RuntimeException {
+public class DestinationNotPayeeException extends RuntimeException {
 
-    public ReceiverAccountRequiredException(String message) {
+    public DestinationNotPayeeException(String message) {
         super(message);
     }
 }

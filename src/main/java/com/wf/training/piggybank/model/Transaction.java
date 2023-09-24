@@ -2,11 +2,7 @@ package com.wf.training.piggybank.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
-
-
 import java.math.BigDecimal;
-import java.util.Date;
-
 
 @Entity
 @Data
@@ -16,16 +12,16 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne
+    private Account sourceAccount;
+
+    @ManyToOne
+    private Account destinationAccount;
+
     @Enumerated(EnumType.STRING)
-    private TransactionType type; // DEPOSIT, WITHDRAWAL, or TRANSFER
-
-    @ManyToOne
-    private Account senderAccount;
-
-    @ManyToOne
-    private Account receiverAccount;
+    private TransactionType type;
 
     private BigDecimal amount;
-    private Date transactionDate;
 
+    // Additional properties and methods as needed
 }

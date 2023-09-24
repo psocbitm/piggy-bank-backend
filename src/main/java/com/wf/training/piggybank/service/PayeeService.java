@@ -96,4 +96,17 @@ public class PayeeService {
     public void deletePayee(Long payeeId) {
         payeeRepository.deleteById(payeeId);
     }
+
+    public boolean isPayee(Account sourceAccount, Account destinationAccount) {
+        List<Payee> payees = getAllPayeesByUserId(sourceAccount.getUser().getId());
+
+        for (Payee payee : payees) {
+            if (payee.getAccountNumber().equals(destinationAccount.getAccountNumber())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 }
