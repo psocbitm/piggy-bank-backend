@@ -114,6 +114,31 @@ public class TransactionService {
         }
     }
 
+    public Transaction performDeposit(Transaction transaction) {
+        Long destinationAccountId = transaction.getDestinationAccount().getId();
+        Optional<Account> destinationAccountOpt = accountService.getAccountById(destinationAccountId);
+
+        if (destinationAccountOpt.isEmpty()) {
+            throw new DestinationAccountNotFoundException("Destination account not found");
+        }
+
+        Account destinationAccount = destinationAccountOpt.get();
+
+        BigDecimal amount = transaction.getAmount();
+        BigDecimal newDestinationAccountBalance = destinationAccount.getBalance().add(amount);
+        destinationAccount.setBalance(newDestinationAccountBalance);
+
+        accountService.updateAccount(destinationAccount);
+
+        Transaction newTransaction = new Transaction();
+        newTransaction.setDestinationAccount(destinationAccount);
+        newTransaction.setType(TransactionType.DEPOSIT);
+        newTransaction.setAmount(amount);
+
+        return transactionRepository.save(newTransaction);
+    }
+
+
     public List<Transaction> getAllTransactionsByUser(Long userId) {
         return transactionRepository.findAllBySourceAccountUserIdOrDestinationAccountUserId(userId, userId);
     }

@@ -36,7 +36,7 @@ public class TransactionController {
 
     @PostMapping("/deposit")
     public ResponseEntity<Transaction> performDeposit(@RequestBody Transaction transaction) {
-        Transaction createdTransaction = transactionService.performTransfer(transaction);
+        Transaction createdTransaction = transactionService.performDeposit(transaction);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdTransaction);
     }
 
