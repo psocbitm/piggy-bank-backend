@@ -29,20 +29,46 @@ public class TransactionService {
     }
 
     public Transaction performTransfer(Transaction transaction) {
-        Long sourceAccountId = transaction.getSourceAccount().getId();
-        Long destinationAccountId = transaction.getDestinationAccount().getId();
 
-        Optional<Account> sourceAccountOpt = accountService.getAccountById(sourceAccountId);
-        Optional<Account> destinationAccountOpt = accountService.getAccountById(destinationAccountId);
+//        Optional<Account> sourceAccountOpt = accountService.getAccountById(sourceAccountId);
+//        Optional<Account> destinationAccountOpt = accountService.getAccountById(destinationAccountId);
+//
+//        if (sourceAccountOpt.isEmpty()) {
+//            throw new SourceAccountNotFoundException("Source account not found");
+//        }
+//
+//        Account sourceAccount = sourceAccountOpt.get();
+//
+//        if (destinationAccountOpt.isEmpty()) {
+//            // Handle the case where the destination account is not found
+//            BigDecimal amount = transaction.getAmount();
+//            if (sourceAccount.getBalance().compareTo(amount) < 0) {
+//                throw new InsufficientBalanceException("Insufficient balance in source account");
+//            }
+//
+//            BigDecimal newSourceAccountBalance = sourceAccount.getBalance().subtract(amount);
+//            sourceAccount.setBalance(newSourceAccountBalance);
+//            accountService.updateAccount(sourceAccount);
+//
+//            Transaction newTransaction = new Transaction();
+//            newTransaction.setSourceAccount(sourceAccount);
+//            newTransaction.setType(TransactionType.TRANSFER);
+//            newTransaction.setAmount(amount);
+//
+//            return transactionRepository.save(newTransaction);
+//        }
+//
+//
+        String sourceAccountId = transaction.getSourceAccount().getAccountNumber();
+        String destinationAccountId = transaction.getDestinationAccount().getAccountNumber();
+        Optional<Account> sourceAccountOpt = accountService.getAccountByAccountNumber(sourceAccountId);
+        Optional<Account> destinationAccountOpt = accountService.getAccountByAccountNumber(destinationAccountId);
 
         if (sourceAccountOpt.isEmpty()) {
             throw new SourceAccountNotFoundException("Source account not found");
         }
-
         Account sourceAccount = sourceAccountOpt.get();
-
         if (destinationAccountOpt.isEmpty()) {
-            // Handle the case where the destination account is not found
             BigDecimal amount = transaction.getAmount();
             if (sourceAccount.getBalance().compareTo(amount) < 0) {
                 throw new InsufficientBalanceException("Insufficient balance in source account");
@@ -59,7 +85,6 @@ public class TransactionService {
 
             return transactionRepository.save(newTransaction);
         }
-
         Account destinationAccount = destinationAccountOpt.get();
 
         if (!payeeService.isPayee(sourceAccount, destinationAccount)) {

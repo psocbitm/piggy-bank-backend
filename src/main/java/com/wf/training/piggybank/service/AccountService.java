@@ -53,6 +53,10 @@ public class AccountService {
         return accountRepository.findByUserId(userId);
     }
 
+    public Optional<Account> getAccountByAccountNumber(String accountNumber) {
+        return accountRepository.findByAccountNumber(accountNumber);
+    }
+
 
     // Add more business logic methods as needed
 }
