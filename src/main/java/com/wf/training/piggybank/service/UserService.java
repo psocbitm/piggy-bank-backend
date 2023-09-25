@@ -37,11 +37,15 @@ public class UserService {
         userRepository.deleteById(userId);
     }
 
-    public boolean authenticate(String username, String password) {
-        // Implement logic to check if the provided username and password match your records
+    public User authenticate(String username, String password) {
         Optional<User> user = userRepository.findByUsername(username);
-        return user.isPresent() && user.get().getPassword().equals(password);
+        if (user.isPresent() && user.get().getPassword().equals(password)) {
+            return user.get();
+        } else {
+            return null;
+        }
     }
+
 
     public boolean isUserDataIncomplete(Long userId) {
         Optional<User> user = userRepository.findById(userId);
@@ -52,5 +56,7 @@ public class UserService {
         }
         return true; // User not found, considered as incomplete
     }
+
+
 }
 

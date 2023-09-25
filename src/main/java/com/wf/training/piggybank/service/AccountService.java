@@ -7,8 +7,11 @@ import com.wf.training.piggybank.repository.AccountRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class AccountService {
@@ -30,16 +33,28 @@ public class AccountService {
         return accountRepository.findById(accountId);
     }
 
-    public Account createAccount(Account account, Long userId) {
-        Optional<User> user = userService.getUserById(userId);
-        if (user.isPresent()) {
-            account.setUser(user.get());
-            // Implement account creation logic here, e.g., setting initial balance, generating account number, etc.
+    public Account createAccount(Long userId) {
+        try {
+            Objects.requireNonNull(userId, "UserId cannot be null");
+
+            User user = userService.getUserById(userId)
+                    .orElseThrow(() -> new UserNotFoundException("User not found with ID: " + userId));
+
+            Account account = new Account();
+            account.setAccountNumber(generateRandomAccountNumber());
+            account.setUser(user);
+            account.setBalance(BigDecimal.ZERO); // Assuming balance is initialized to zero
+
             return accountRepository.save(account);
-        } else {
-            throw new UserNotFoundException("User not found with ID: " + userId);
+        } catch (Exception e) {
+            throw e;
         }
     }
+
+    private String generateRandomAccountNumber() {
+        return UUID.randomUUID().toString().replaceAll("-", "").substring(0, 10);
+    }
+
 
     public Account updateAccount(Account account) {
         return accountRepository.save(account);

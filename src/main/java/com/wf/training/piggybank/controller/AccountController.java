@@ -45,20 +45,31 @@ public class AccountController {
         return accountService.getAllAccountsByUserId(userId);
     }
 
-    @PostMapping("/{userId}")
-    public ResponseEntity<Account> createAccount(@RequestBody Account account, @PathVariable Long userId) {
+    @PostMapping("/")
+    public ResponseEntity<Account> createAccount(@RequestParam Long userId){
         try {
+            // Check if userId is valid
+            if (userId == null) {
+                throw new IllegalArgumentException("UserId cannot be null");
+            }
 
+            if (userService.getUserById(userId).isEmpty()) {
+                throw new UserNotFoundException("User not found with ID: " + userId);
+            }
+
+            // Check if user data is incomplete
             if (userService.isUserDataIncomplete(userId)) {
                 throw new IncompleteUserDetailsException("User details are incomplete. Account creation is not allowed.");
             }
 
-            Account createdAccount = accountService.createAccount(account, userId);
+            // Create the account
+            Account createdAccount = accountService.createAccount(userId);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdAccount);
         } catch (UserNotFoundException ex) {
             throw new UserNotFoundException("User not found with ID: " + userId);
         }
     }
+
 
 
     @PutMapping("/{accountId}")

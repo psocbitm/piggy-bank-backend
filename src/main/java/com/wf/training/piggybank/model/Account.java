@@ -20,4 +20,9 @@ public class Account {
 
     private BigDecimal balance;
 
+    private String accountStatus;
+
+    // Generate getters and setters
+
 }
+
