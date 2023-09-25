@@ -8,10 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class AccountService {
@@ -52,7 +49,14 @@ public class AccountService {
     }
 
     private String generateRandomAccountNumber() {
-        return UUID.randomUUID().toString().replaceAll("-", "").substring(0, 10);
+        Random random = new Random();
+        StringBuilder accountNumber = new StringBuilder();
+
+        for (int i = 0; i < 10; i++) {
+            accountNumber.append(random.nextInt(13)); // Generates a random digit (0-9)
+        }
+
+        return accountNumber.toString();
     }
 
 
