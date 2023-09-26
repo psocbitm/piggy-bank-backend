@@ -22,7 +22,6 @@ public class Account {
 
     private String accountStatus;
 
-    // Generate getters and setters
 
 }
 

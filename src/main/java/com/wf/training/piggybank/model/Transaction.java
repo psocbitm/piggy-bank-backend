@@ -2,6 +2,8 @@ package com.wf.training.piggybank.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.antlr.v4.runtime.misc.NotNull;
+
 import java.math.BigDecimal;
 
 @Entity
@@ -23,5 +25,4 @@ public class Transaction {
 
     private BigDecimal amount;
 
-    // Additional properties and methods as needed
 }

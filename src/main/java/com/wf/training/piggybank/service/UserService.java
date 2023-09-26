@@ -51,7 +51,6 @@ public class UserService {
         Optional<User> user = userRepository.findById(userId);
         if (user.isPresent()) {
             User userData = user.get();
-            // Check if any required user details are missing or empty
             return userData.getFullName() == null || userData.getEmail() == null || userData.getPhoneNumber() == null;
         }
         return true; // User not found, considered as incomplete

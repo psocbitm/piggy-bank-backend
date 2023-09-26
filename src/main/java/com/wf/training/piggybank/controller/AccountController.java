@@ -48,7 +48,6 @@ public class AccountController {
     @PostMapping("/")
     public ResponseEntity<Account> createAccount(@RequestParam Long userId){
         try {
-            // Check if userId is valid
             if (userId == null) {
                 throw new IllegalArgumentException("UserId cannot be null");
             }
@@ -57,12 +56,10 @@ public class AccountController {
                 throw new UserNotFoundException("User not found with ID: " + userId);
             }
 
-            // Check if user data is incomplete
             if (userService.isUserDataIncomplete(userId)) {
                 throw new IncompleteUserDetailsException("User details are incomplete. Account creation is not allowed.");
             }
 
-            // Create the account
             Account createdAccount = accountService.createAccount(userId);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdAccount);
         } catch (UserNotFoundException ex) {
@@ -95,6 +92,5 @@ public class AccountController {
         }
     }
 
-    // Add more endpoints and exception handling as needed
 
 }

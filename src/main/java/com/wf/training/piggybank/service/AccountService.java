@@ -1,5 +1,6 @@
 package com.wf.training.piggybank.service;
 
+import com.wf.training.piggybank.exception.AccountNotFoundException;
 import com.wf.training.piggybank.exception.UserNotFoundException;
 import com.wf.training.piggybank.model.Account;
 import com.wf.training.piggybank.model.User;
@@ -14,7 +15,7 @@ import java.util.*;
 public class AccountService {
 
     private final AccountRepository accountRepository;
-    private final UserService userService; // Inject the UserService
+    private final UserService userService;
 
     @Autowired
     public AccountService(AccountRepository accountRepository, UserService userService) {
@@ -40,7 +41,7 @@ public class AccountService {
             Account account = new Account();
             account.setAccountNumber(generateRandomAccountNumber());
             account.setUser(user);
-            account.setBalance(BigDecimal.ZERO); // Assuming balance is initialized to zero
+            account.setBalance(BigDecimal.ZERO);
 
             return accountRepository.save(account);
         } catch (Exception e) {
@@ -53,15 +54,39 @@ public class AccountService {
         StringBuilder accountNumber = new StringBuilder();
 
         for (int i = 0; i < 10; i++) {
-            accountNumber.append(random.nextInt(13)); // Generates a random digit (0-9)
+            accountNumber.append(random.nextInt(13));
         }
 
         return accountNumber.toString();
     }
 
 
-    public Account updateAccount(Account account) {
-        return accountRepository.save(account);
+    public Account updateAccount(Account updatedAccount) {
+        Optional<Account> optionalAccount = accountRepository.findById(updatedAccount.getId());
+
+        if (optionalAccount.isPresent()) {
+            Account existingAccount = optionalAccount.get();
+
+            if (updatedAccount.getAccountNumber() != null) {
+                existingAccount.setAccountNumber(updatedAccount.getAccountNumber());
+            }
+
+            if (updatedAccount.getUser() != null) {
+                existingAccount.setUser(updatedAccount.getUser());
+            }
+
+            if (updatedAccount.getBalance() != null) {
+                existingAccount.setBalance(updatedAccount.getBalance());
+            }
+
+            if (updatedAccount.getAccountStatus() != null) {
+                existingAccount.setAccountStatus(updatedAccount.getAccountStatus());
+            }
+
+            return accountRepository.save(existingAccount);
+        } else {
+            throw new AccountNotFoundException("Account not found with ID: " + updatedAccount.getId());
+        }
     }
 
     public void deleteAccount(Long accountId) {
@@ -77,5 +102,4 @@ public class AccountService {
     }
 
 
-    // Add more business logic methods as needed
 }

@@ -1,9 +1,6 @@
 package com.wf.training.piggybank.service;
 
-import com.wf.training.piggybank.exception.DestinationAccountNotFoundException;
-import com.wf.training.piggybank.exception.DestinationNotPayeeException;
-import com.wf.training.piggybank.exception.InsufficientBalanceException;
-import com.wf.training.piggybank.exception.SourceAccountNotFoundException;
+import com.wf.training.piggybank.exception.*;
 import com.wf.training.piggybank.model.Account;
 import com.wf.training.piggybank.model.Transaction;
 import com.wf.training.piggybank.model.TransactionType;
@@ -29,67 +26,25 @@ public class TransactionService {
     }
 
     public Transaction performTransfer(Transaction transaction) {
-
-//        Optional<Account> sourceAccountOpt = accountService.getAccountById(sourceAccountId);
-//        Optional<Account> destinationAccountOpt = accountService.getAccountById(destinationAccountId);
-//
-//        if (sourceAccountOpt.isEmpty()) {
-//            throw new SourceAccountNotFoundException("Source account not found");
-//        }
-//
-//        Account sourceAccount = sourceAccountOpt.get();
-//
-//        if (destinationAccountOpt.isEmpty()) {
-//            // Handle the case where the destination account is not found
-//            BigDecimal amount = transaction.getAmount();
-//            if (sourceAccount.getBalance().compareTo(amount) < 0) {
-//                throw new InsufficientBalanceException("Insufficient balance in source account");
-//            }
-//
-//            BigDecimal newSourceAccountBalance = sourceAccount.getBalance().subtract(amount);
-//            sourceAccount.setBalance(newSourceAccountBalance);
-//            accountService.updateAccount(sourceAccount);
-//
-//            Transaction newTransaction = new Transaction();
-//            newTransaction.setSourceAccount(sourceAccount);
-//            newTransaction.setType(TransactionType.TRANSFER);
-//            newTransaction.setAmount(amount);
-//
-//            return transactionRepository.save(newTransaction);
-//        }
-//
-//
+        if (transaction.getType() != TransactionType.TRANSFER_RTGS && transaction.getType() != TransactionType.TRANSFER_NEFT) {
+            throw new InvalidTransactionTypeException("Invalid transaction type for transfer");
+        }
         String sourceAccountId = transaction.getSourceAccount().getAccountNumber();
         String destinationAccountId = transaction.getDestinationAccount().getAccountNumber();
         Optional<Account> sourceAccountOpt = accountService.getAccountByAccountNumber(sourceAccountId);
         Optional<Account> destinationAccountOpt = accountService.getAccountByAccountNumber(destinationAccountId);
 
+        if (transaction.getType() == TransactionType.TRANSFER_RTGS) {
+            if (destinationAccountOpt.isEmpty()) {
+                throw new DestinationAccountNotFoundException("Destination account not found for RTGS transaction");
+            }
+        }
+
         if (sourceAccountOpt.isEmpty()) {
             throw new SourceAccountNotFoundException("Source account not found");
         }
+
         Account sourceAccount = sourceAccountOpt.get();
-        if (destinationAccountOpt.isEmpty()) {
-            BigDecimal amount = transaction.getAmount();
-            if (sourceAccount.getBalance().compareTo(amount) < 0) {
-                throw new InsufficientBalanceException("Insufficient balance in source account");
-            }
-
-            BigDecimal newSourceAccountBalance = sourceAccount.getBalance().subtract(amount);
-            sourceAccount.setBalance(newSourceAccountBalance);
-            accountService.updateAccount(sourceAccount);
-
-            Transaction newTransaction = new Transaction();
-            newTransaction.setSourceAccount(sourceAccount);
-            newTransaction.setType(TransactionType.TRANSFER);
-            newTransaction.setAmount(amount);
-
-            return transactionRepository.save(newTransaction);
-        }
-        Account destinationAccount = destinationAccountOpt.get();
-
-        if (!payeeService.isPayee(sourceAccount, destinationAccount)) {
-            throw new DestinationNotPayeeException("Destination account is not a payee of source account");
-        }
 
         BigDecimal amount = transaction.getAmount();
 
@@ -98,22 +53,41 @@ public class TransactionService {
         }
 
         BigDecimal newSourceAccountBalance = sourceAccount.getBalance().subtract(amount);
-        BigDecimal newDestinationAccountBalance = destinationAccount.getBalance().add(amount);
-
         sourceAccount.setBalance(newSourceAccountBalance);
-        destinationAccount.setBalance(newDestinationAccountBalance);
-
         accountService.updateAccount(sourceAccount);
-        accountService.updateAccount(destinationAccount);
+
+        if (transaction.getType() != TransactionType.TRANSFER_RTGS) {
+            if (destinationAccountOpt.isEmpty()) {
+                Transaction newTransaction = new Transaction();
+                newTransaction.setSourceAccount(sourceAccount);
+                newTransaction.setType(TransactionType.TRANSFER_NEFT);
+                newTransaction.setAmount(amount);
+
+                return transactionRepository.save(newTransaction);
+            }
+        }
+
+        Account destinationAccount = destinationAccountOpt.orElse(null);
+
+        if (destinationAccount != null && !payeeService.isPayee(sourceAccount, destinationAccount)) {
+            throw new DestinationNotPayeeException("Destination account is not a payee of source account");
+        }
+
+        if (destinationAccount != null) {
+            BigDecimal newDestinationAccountBalance = destinationAccount.getBalance().add(amount);
+            destinationAccount.setBalance(newDestinationAccountBalance);
+            accountService.updateAccount(destinationAccount);
+        }
 
         Transaction newTransaction = new Transaction();
         newTransaction.setSourceAccount(sourceAccount);
         newTransaction.setDestinationAccount(destinationAccount);
-        newTransaction.setType(TransactionType.TRANSFER);
+        newTransaction.setType(transaction.getType());
         newTransaction.setAmount(amount);
 
         return transactionRepository.save(newTransaction);
     }
+
 
 
     public Transaction performWithdrawal(Transaction transaction) {
@@ -166,5 +140,9 @@ public class TransactionService {
 
     public List<Transaction> getAllTransactionsByUser(Long userId) {
         return transactionRepository.findAllBySourceAccountUserIdOrDestinationAccountUserId(userId, userId);
+    }
+
+    public List<Transaction> getAllTransactions() {
+        return transactionRepository.findAll();
     }
 }

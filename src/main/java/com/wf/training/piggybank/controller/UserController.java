@@ -46,12 +46,22 @@ public class UserController {
         Optional<User> user = userService.getUserById(userId);
         if (user.isPresent()) {
             User existingUser = user.get();
-            existingUser.setUsername(updatedUser.getUsername());
-            existingUser.setPassword(updatedUser.getPassword());
-            existingUser.setFullName(updatedUser.getFullName());
-            existingUser.setEmail(updatedUser.getEmail());
-            existingUser.setPhoneNumber(updatedUser.getPhoneNumber());
-            // Update other properties as needed
+
+            if (updatedUser.getUsername() != null) {
+                existingUser.setUsername(updatedUser.getUsername());
+            }
+            if (updatedUser.getPassword() != null) {
+                existingUser.setPassword(updatedUser.getPassword());
+            }
+            if (updatedUser.getFullName() != null) {
+                existingUser.setFullName(updatedUser.getFullName());
+            }
+            if (updatedUser.getEmail() != null) {
+                existingUser.setEmail(updatedUser.getEmail());
+            }
+            if (updatedUser.getPhoneNumber() != null) {
+                existingUser.setPhoneNumber(updatedUser.getPhoneNumber());
+            }
 
             User updatedUserEntity = userService.updateUser(existingUser);
             return ResponseEntity.ok(updatedUserEntity);
@@ -60,22 +70,11 @@ public class UserController {
         }
     }
 
-    @DeleteMapping("/{userId}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
-        Optional<User> user = userService.getUserById(userId);
-        if (user.isPresent()) {
-            userService.deleteUser(userId);
-            return ResponseEntity.noContent().build();
-        } else {
-            throw new UserNotFoundException("User not found with ID: " + userId);
-        }
-    }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody User loginUser) {
         User user = userService.authenticate(loginUser.getUsername(), loginUser.getPassword());
         if (user != null) {
-            // Return user details as JSON
             return ResponseEntity.status(HttpStatus.CREATED).body(user);
 
         } else {

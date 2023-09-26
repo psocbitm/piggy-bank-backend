@@ -1,5 +1,3 @@
-
-
 package com.wf.training.piggybank.controller;
 
 import com.wf.training.piggybank.model.Transaction;
@@ -9,7 +7,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -40,11 +37,15 @@ public class TransactionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(createdTransaction);
     }
 
-
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<Transaction>> getAllTransactionsByUser(@PathVariable Long userId) {
         List<Transaction> transactions = transactionService.getAllTransactionsByUser(userId);
         return ResponseEntity.ok(transactions);
     }
-}
 
+    @GetMapping("/")
+    public ResponseEntity<List<Transaction>> getAllTransactions() {
+        List<Transaction> transactions = transactionService.getAllTransactions();
+        return ResponseEntity.ok(transactions);
+    }
+}

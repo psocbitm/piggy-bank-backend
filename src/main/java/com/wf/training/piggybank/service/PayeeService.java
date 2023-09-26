@@ -44,15 +44,12 @@ public class PayeeService {
             throw new IllegalArgumentException("Payee name and account number are required.");
         }
 
-        // Check if the account number already exists
         if (payeeRepository.findByAccountNumber(payee.getAccountNumber()).isPresent()) {
             throw new IllegalArgumentException("Payee with account number " + payee.getAccountNumber() + " already exists.");
         }
 
-        // Check if the user exists
         Optional<User> user = userService.getUserById(userId);
         if (user.isPresent()) {
-            // Implement logic to retrieve the user's associated account
             List<Account> userAccount = accountRepository.findByUserId(userId);
 
             if (!userAccount.isEmpty()) {
@@ -67,18 +64,15 @@ public class PayeeService {
     }
 
     public Payee updatePayee(Long payeeId, Payee updatedPayee) {
-        // Check if the payee exists
         Optional<Payee> existingPayeeOptional = getPayeeById(payeeId);
 
         if (existingPayeeOptional.isPresent()) {
             Payee existingPayee = existingPayeeOptional.get();
 
-            // Check if the provided updates are valid
             if (updatedPayee.getName() != null) {
                 existingPayee.setName(updatedPayee.getName());
             }
             if (updatedPayee.getAccountNumber() != null) {
-                // Check if the new account number already exists
                 Optional<Payee> payeeWithNewAccountNumber = payeeRepository.findByAccountNumber(updatedPayee.getAccountNumber());
                 if (payeeWithNewAccountNumber.isPresent() && !payeeWithNewAccountNumber.get().getId().equals(payeeId)) {
                     throw new IllegalArgumentException("Payee with account number " + updatedPayee.getAccountNumber() + " already exists.");
@@ -86,7 +80,6 @@ public class PayeeService {
                 existingPayee.setAccountNumber(updatedPayee.getAccountNumber());
             }
 
-            // Update the payee in the repository
             return payeeRepository.save(existingPayee);
         } else {
             throw new PayeeNotFoundException("Payee not found with ID: " + payeeId);

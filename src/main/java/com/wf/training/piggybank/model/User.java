@@ -20,7 +20,6 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    // Additional user details for registration
     private String fullName;
     private String email;
     private String phoneNumber;
