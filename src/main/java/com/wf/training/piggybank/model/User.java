@@ -25,5 +25,6 @@ public class User {
     private String phoneNumber;
     @Column(nullable = false)
     private String role = "USER";
-
+    @Enumerated(EnumType.STRING)
+    private UserStatus userStatus = UserStatus.ACTIVE;
 }

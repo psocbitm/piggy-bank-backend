@@ -82,4 +82,23 @@ public class UserController {
         }
     }
 
+    @PostMapping("/lockUser/{userId}")
+    public ResponseEntity<?> lockUser(@RequestBody User user, @PathVariable Long userId) {
+      Optional<User> admin = userService.getUserById(user.getId());
+        if (admin.isPresent() && admin.get().getRole().equals("ADMIN")) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(userService.lockUser(userId));
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authentication failed");
+        }
+    }
+
+    @PostMapping("/unlockUser/{userId}")
+    public ResponseEntity<?> unlockUser(@RequestBody User user, @PathVariable Long userId) {
+        Optional<User> admin = userService.getUserById(user.getId());
+        if (admin.isPresent() && admin.get().getRole().equals("ADMIN")) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(userService.unlockUser(userId));
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authentication failed");
+        }
+    }
 }

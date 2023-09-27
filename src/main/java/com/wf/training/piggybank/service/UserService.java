@@ -1,6 +1,7 @@
 package com.wf.training.piggybank.service;
 
 import com.wf.training.piggybank.model.User;
+import com.wf.training.piggybank.model.UserStatus;
 import com.wf.training.piggybank.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -54,6 +55,28 @@ public class UserService {
             return userData.getFullName() == null || userData.getEmail() == null || userData.getPhoneNumber() == null;
         }
         return true; // User not found, considered as incomplete
+    }
+
+    public User lockUser(long userId) {
+        Optional<User> user = userRepository.findById(userId);
+        if (user.isPresent()) {
+            User userData = user.get();
+            userData.setUserStatus(UserStatus.LOCKED);
+            return userRepository.save(userData);
+        } else {
+            throw new IllegalArgumentException("User not found");
+        }
+    }
+
+    public User unlockUser(long userId) {
+        Optional<User> user = userRepository.findById(userId);
+        if (user.isPresent()) {
+            User userData = user.get();
+            userData.setUserStatus(UserStatus.ACTIVE);
+            return userRepository.save(userData);
+        } else {
+            throw new IllegalArgumentException("User not found");
+        }
     }
 
 

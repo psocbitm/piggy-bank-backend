@@ -4,6 +4,7 @@ import com.wf.training.piggybank.exception.*;
 import com.wf.training.piggybank.model.Account;
 import com.wf.training.piggybank.model.Transaction;
 import com.wf.training.piggybank.model.TransactionType;
+import com.wf.training.piggybank.model.UserStatus;
 import com.wf.training.piggybank.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -44,8 +45,12 @@ public class TransactionService {
             throw new SourceAccountNotFoundException("Source account not found");
         }
 
-        Account sourceAccount = sourceAccountOpt.get();
 
+
+        Account sourceAccount = sourceAccountOpt.get();
+        if(sourceAccount.getUser().getUserStatus()== UserStatus.LOCKED){
+            throw new UserLockedException("User is locked");
+        }
         BigDecimal amount = transaction.getAmount();
 
         if (sourceAccount.getBalance().compareTo(amount) < 0) {
@@ -95,6 +100,9 @@ public class TransactionService {
         Optional<Account> sourceAccount = accountService.getAccountById(sourceAccountId);
 
         if (sourceAccount.isPresent()) {
+            if(sourceAccount.get().getUser().getUserStatus()== UserStatus.LOCKED){
+                throw new UserLockedException("User is locked");
+            }
             if (sourceAccount.get().getBalance().compareTo(transaction.getAmount()) < 0) {
                 throw new InsufficientBalanceException("Insufficient balance in source account");
             }
@@ -119,6 +127,9 @@ public class TransactionService {
 
         if (destinationAccountOpt.isEmpty()) {
             throw new DestinationAccountNotFoundException("Destination account not found");
+        }
+        if(destinationAccountOpt.get().getUser().getUserStatus()== UserStatus.LOCKED){
+            throw new UserLockedException("User is locked");
         }
 
         Account destinationAccount = destinationAccountOpt.get();
